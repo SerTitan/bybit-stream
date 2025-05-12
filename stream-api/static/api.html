@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bybit Stream Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            text-align: center;
+        }
+        #messages {
+            height: 90vh;
+            overflow-y: scroll;
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #ccc;
+        }
+        .msg {
+            padding: 5px 10px;
+            border-bottom: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bybit Average Prices Stream</h1>
+    <div id="messages"></div>
+
+    <script>
+        const messagesDiv = document.getElementById("messages");
+        const ws = new WebSocket(`ws://${window.location.hostname}:8000/ws`);
+
+        ws.onopen = () => {
+            console.log("✅ WebSocket connected");
+        }
+
+        ws.onmessage = (event) => {
+            const msg = document.createElement("div");
+            msg.className = "msg";
+            msg.textContent = event.data;
+            messagesDiv.appendChild(msg);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        ws.onerror = (err) => {
+            console.error("❌ WebSocket error", err);
+        }
+
+        ws.onclose = () => {
+            console.log("⚠️ WebSocket closed");
+        }
+    </script>
+</body>
+</html>
