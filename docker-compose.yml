@@ -1,3 +1,6 @@
+networks:
+  flinknet:
+
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.0.1
@@ -20,6 +23,23 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    networks:
+      - flinknet
+
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: bybit
+      POSTGRES_PASSWORD: bybitpass
+      POSTGRES_DB: bybitdb
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bybit"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - flinknet
 
@@ -73,20 +93,6 @@ services:
     networks:
       - flinknet
 
-  stream-api:
-    build:
-      context: ./stream-api
-      dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
-    depends_on:
-      - kafka
-    environment:
-      KAFKA_BOOTSTRAP: kafka:9092
-      KAFKA_TOPIC: bybit_avg
-    networks:
-      - flinknet
-
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     ports:
@@ -99,5 +105,33 @@ services:
     networks:
       - flinknet
 
-networks:
-  flinknet:
+  stream-api:
+    build:
+      context: ./stream-api
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      - kafka
+      - postgres
+    networks:
+      - flinknet
+
+  db-writer:
+    build:
+      context: ./db-writer
+      dockerfile: Dockerfile
+    depends_on:
+      - kafka
+      - postgres
+    environment:
+      KAFKA_BOOTSTRAP: kafka:9092
+      KAFKA_TOPIC: bybit_avg
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: bybitdb
+      POSTGRES_USER: bybit
+      POSTGRES_PASSWORD: bybitpass
+      DB_NAME: bybit
+    restart: always
+    networks:
+      - flinknet
